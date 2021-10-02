@@ -1,28 +1,21 @@
 // Ensure we're `no_std` when compiling for Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{
-    decl_error, decl_event, decl_module, decl_storage,
-    dispatch::DispatchResult,
-    ensure,
-    traits::{EnsureOrigin, Get},
-    weights::{GetDispatchInfo, Pays},
-    Parameter,
-};
+use frame_support::{decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult, ensure, traits::{EnsureOrigin, Get}, weights::{GetDispatchInfo, Pays}, Parameter};
 
 use frame_system::{self as system, ensure_root, ensure_signed};
 use sp_core::U256;
 use sp_runtime::traits::{AccountIdConversion, Dispatchable};
-use sp_runtime::{ModuleId, RuntimeDebug};
+use sp_runtime::{RuntimeDebug};
 use sp_std::prelude::*;
-
+use frame_support::{PalletId};
 use codec::{Decode, Encode, EncodeLike};
 
 mod mock;
 mod tests;
 
 const DEFAULT_RELAYER_THRESHOLD: u32 = 1;
-const MODULE_ID: ModuleId = ModuleId(*b"cb/bridg");
+const PALLET_ID: PalletId = PalletId(*b"cb/bridg");
 
 pub type ChainId = u8;
 pub type DepositNonce = u64;
@@ -102,7 +95,7 @@ pub trait Config: system::Config {
     /// Origin used to administer the pallet
     type AdminOrigin: EnsureOrigin<Self::Origin>;
     /// Proposed dispatchable call
-    type Proposal: Parameter + Dispatchable<Origin = Self::Origin> + EncodeLike + GetDispatchInfo;
+    type Proposal: Parameter + Dispatchable<Origin=Self::Origin> + EncodeLike + GetDispatchInfo;
     /// The identifier for this chain.
     /// This must be unique and must not collide with existing IDs within a set of bridged chains.
     type ChainId: Get<ChainId>;
@@ -208,7 +201,7 @@ decl_module! {
 
         const ChainIdentity: ChainId = T::ChainId::get();
         const ProposalLifetime: T::BlockNumber = T::ProposalLifetime::get();
-        const BridgeAccountId: T::AccountId = MODULE_ID.into_account();
+        const BridgeAccountId: T::AccountId = PALLET_ID.into_account();
 
         fn deposit_event() = default;
 
@@ -352,7 +345,7 @@ impl<T: Config> Module<T> {
     /// Provides an AccountId for the pallet.
     /// This is used both as an origin check and deposit/withdrawal account.
     pub fn account_id() -> T::AccountId {
-        MODULE_ID.into_account()
+        PALLET_ID.into_account()
     }
 
     /// Asserts if a resource is registered
@@ -604,10 +597,11 @@ impl<T: Config> Module<T> {
 
 /// Simple ensure origin for the bridge account
 pub struct EnsureBridge<T>(sp_std::marker::PhantomData<T>);
+
 impl<T: Config> EnsureOrigin<T::Origin> for EnsureBridge<T> {
     type Success = T::AccountId;
     fn try_origin(o: T::Origin) -> Result<Self::Success, T::Origin> {
-        let bridge_id = MODULE_ID.into_account();
+        let bridge_id = PALLET_ID.into_account();
         o.into().and_then(|o| match o {
             system::RawOrigin::Signed(who) if who == bridge_id => Ok(bridge_id),
             r => Err(T::Origin::from(r)),
@@ -623,5 +617,4 @@ impl<T: Config> EnsureOrigin<T::Origin> for EnsureBridge<T> {
             frame_system::RawOrigin::Signed(<Module<T>>::account_id())
         )
     }
-
 }
