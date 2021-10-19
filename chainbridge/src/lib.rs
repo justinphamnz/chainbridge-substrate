@@ -11,6 +11,8 @@ use sp_std::prelude::*;
 use frame_support::{PalletId};
 use codec::{Decode, Encode, EncodeLike};
 
+use scale_info::TypeInfo;
+
 mod mock;
 mod tests;
 
@@ -33,14 +35,14 @@ pub fn derive_resource_id(chain: u8, id: &[u8]) -> ResourceId {
     return r_id;
 }
 
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug)]
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum ProposalStatus {
     Initiated,
     Approved,
     Rejected,
 }
 
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug)]
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct ProposalVotes<AccountId, BlockNumber> {
     pub votes_for: Vec<AccountId>,
     pub votes_against: Vec<AccountId>,
